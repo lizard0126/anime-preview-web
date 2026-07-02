@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节操新番导视 · 评论收集</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>🎬 节操新番导视 · 评论收集</h1>
+      <p class="subtitle">输入QQ号获取头像，添加评论后可实时预览效果</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="fetch-group">
+        <input type="text" id="seasonInput" value="202607" placeholder="季度代码，如 202607">
+        <button id="fetchBtn" class="btn btn-primary">从 yuc.wiki 抓取</button>
+      </div>
+      <button id="batchAddBtn" class="btn btn-secondary">批量添加番剧</button>
+      <button id="loadJsonBtn" class="btn btn-primary">导入评论</button>
+      <button id="saveJsonBtn" class="btn btn-success">导出评论</button>
+      <button id="clearAllBtn" class="btn btn-danger">清除全部</button>
+    </div>
+
+    <div class="default-commenter-bar">
+      <div class="default-commenter">
+        <span class="dc-label">默认信息：</span>
+        <input type="text" id="defaultName" placeholder="昵称" class="dc-name">
+        <input type="text" id="defaultQQ" placeholder="QQ号" class="dc-qq">
+        <span id="defaultAvatarStatus" class="dc-avatar-status">未设置QQ号</span>
+        <button id="fetchDefaultAvatar" class="btn btn-small btn-primary">获取头像</button>
+        <button id="clearDefault" class="btn btn-small btn-danger">清除</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading" style="display:none;">
+      <div class="spinner"></div>
+      <span id="loadingText">正在加载...</span>
+    </div>
+
+    <!-- 主内容区域：左侧列表 + 右侧预览 -->
+    <div class="main-content">
+      <div class="left-panel">
+        <div id="animeList" class="anime-list"></div>
+      </div>
+      <div class="right-panel">
+        <div id="previewContainer" class="preview-container">
+          <div class="preview-placeholder">点击"预览"查看效果</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-container">
+    <div id="log" class="log"></div>
+  </div>
+
+  <div id="previewModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <div id="modalPreviewContainer" class="modal-preview-container"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+
+</html>
