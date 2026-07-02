@@ -544,18 +544,13 @@ async function previewAnime(index) {
     if (!anime) return;
 
     const previewContainer = document.getElementById('previewContainer');
-    const rightPanel = document.querySelector('.right-panel');
-
     previewContainer.innerHTML = '<div class="preview-placeholder">正在生成预览...</div>';
     log(`👁 正在生成预览: ${anime.title}`);
 
     try {
-        // 提取头像的 base64 数据
         const commentsWithAvatar = (anime.comments || []).map(c => {
             const comment = { ...c };
-            // 如果 avatar 是本地文件路径，尝试读取为 base64
             if (comment.avatar && !comment.avatar.startsWith('http') && !comment.avatar.startsWith('data:')) {
-                // 使用默认头像
                 comment.avatar = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23ddd" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%23999" font-size="30">?</text></svg>';
             }
             return comment;
@@ -565,10 +560,13 @@ async function previewAnime(index) {
             anime: {
                 title: anime.title,
                 subtitle: anime.subtitle,
+                // 确保视觉图完整传递
                 visual: anime.visual || '',
                 comments: commentsWithAvatar
             }
         };
+
+        console.log('预览请求数据:', requestData);
 
         const response = await fetch('/api/preview', {
             method: 'POST',
@@ -588,18 +586,13 @@ async function previewAnime(index) {
 
         let html = result.html;
 
-        // 处理视觉图（如果是网络图片，直接使用；如果是本地文件，标记为无法加载）
-        if (anime.visual && anime.visual.startsWith('http')) {
-            // 网络图片直接使用
-        } else if (anime.visual && !anime.visual.startsWith('data:')) {
-            // 本地文件路径，在网页中无法加载，移除视觉图
-            html = html.replace(/<img class="visual-image"[^>]*\/>/, '');
-        }
+        console.log('预览 HTML 包含视觉图:', html.includes('visual-image'));
 
         // 创建 iframe 显示预览
         const iframe = document.createElement('iframe');
-        iframe.style.cssText = 'width:100%;min-height:500px;border:none;border-radius:4px;';
-        iframe.sandbox = 'allow-scripts allow-same-origin';
+        iframe.style.cssText = 'width:100%;min-height:500px;border:none;border-radius:4px;background:#fffef5;';
+        // 使用更宽松的 sandbox 权限
+        iframe.sandbox = 'allow-scripts allow-same-origin allow-popups';
 
         previewContainer.innerHTML = '';
         previewContainer.appendChild(iframe);
@@ -609,10 +602,11 @@ async function previewAnime(index) {
         doc.write(html);
         doc.close();
 
+        // 等待图片加载完成后调整高度
         setTimeout(() => {
             const height = iframe.contentDocument?.body?.scrollHeight || 500;
             iframe.style.height = height + 'px';
-        }, 100);
+        }, 500);
 
         log(`✅ 预览生成成功: ${anime.title}`);
     } catch (err) {

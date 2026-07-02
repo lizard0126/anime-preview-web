@@ -7,6 +7,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= title %> - 预览</title>
   <style>
+    /* ... 保持样式不变 ... */
     body {
       margin: 0;
       padding: 40px;
@@ -236,7 +237,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     </div>
     <div class="visual-container">
       <% if (visual) { %>
-        <img class="visual-image" src="<%= visual %>" alt="视觉图" onerror="this.style.display='none'" />
+        <img class="visual-image" src="<%= visual %>" alt="视觉图" referrerpolicy="no-referrer" />
       <% } else { %>
         <div style="width:520px;height:400px;background:#e8e8e8;border-radius:0 0 520px 520px;display:flex;align-items:center;justify-content:center;color:#999;">暂无视觉图</div>
       <% } %>
@@ -247,7 +248,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <% comments.forEach(function(c) { %>
       <div class="comment">
         <% if (c.avatar) { %>
-          <img class="avatar" src="<%= c.avatar %>" alt="头像" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2230%22>?</text></svg>'" />
+          <img class="avatar" src="<%= c.avatar %>" alt="头像" referrerpolicy="no-referrer" />
         <% } else { %>
           <div class="avatar" style="background:#ddd;display:flex;align-items:center;justify-content:center;font-size:30px;color:#999;">?</div>
         <% } %>
@@ -269,56 +270,56 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, error: '仅支持 POST 请求' });
+    return;
+  }
+
+  try {
+    const { anime } = req.body;
+    if (!anime || !anime.title) {
+      res.status(400).json({ success: false, error: '缺少动画数据' });
+      return;
     }
 
-    if (req.method !== 'POST') {
-        res.status(405).json({ success: false, error: '仅支持 POST 请求' });
-        return;
-    }
+    const tplData = {
+      title: anime.title || '未命名番剧',
+      subtitle: anime.subtitle || '',
+      visual: anime.visual || '',
+      comments: (anime.comments || []).map(c => ({
+        name: c.name || '匿名用户',
+        avatar: c.avatar || '',
+        text: c.text || '',
+        medal: c.medal || ''
+      }))
+    };
 
-    try {
-        const { anime } = req.body;
-        if (!anime || !anime.title) {
-            res.status(400).json({ success: false, error: '缺少动画数据' });
-            return;
-        }
-
-        const tplData = {
-            title: anime.title || '未命名番剧',
-            subtitle: anime.subtitle || '',
-            visual: anime.visual || '',
-            comments: (anime.comments || []).map(c => ({
-                name: c.name || '匿名用户',
-                avatar: c.avatar || '',
-                text: c.text || '',
-                medal: c.medal || ''
-            }))
-        };
-
-        // 处理评论中的图片
-        tplData.comments.forEach(c => {
-            const comment = anime.comments.find(ac => ac.name === c.name);
-            if (comment && comment.images && comment.images.length > 0) {
-                let imgHtml = '';
-                comment.images.forEach(img => {
-                    imgHtml += `<img src="${img}" />`;
-                });
-                c.text = c.text + imgHtml;
-            }
+    // 处理评论中的图片
+    tplData.comments.forEach(c => {
+      const comment = anime.comments.find(ac => ac.name === c.name);
+      if (comment && comment.images && comment.images.length > 0) {
+        let imgHtml = '';
+        comment.images.forEach(img => {
+          imgHtml += `<img src="${img}" referrerpolicy="no-referrer" />`;
         });
+        c.text = c.text + imgHtml;
+      }
+    });
 
-        const html = ejs.render(PAGE_TEMPLATE, tplData);
+    const html = ejs.render(PAGE_TEMPLATE, tplData);
 
-        res.status(200).json({ success: true, html });
-    } catch (err) {
-        console.error('预览生成错误:', err);
-        res.status(500).json({ success: false, error: err.message });
-    }
+    res.status(200).json({ success: true, html });
+  } catch (err) {
+    console.error('预览生成错误:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 }
