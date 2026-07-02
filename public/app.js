@@ -109,7 +109,11 @@ async function fetchAnimeList() {
 
         if (!response.ok) {
             let errorText = '';
-            try { errorText = JSON.stringify(await response.json()); } catch { errorText = await response.text(); }
+            try {
+                errorText = await response.text();
+            } catch {
+                errorText = '无法读取响应';
+            }
             throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
@@ -146,7 +150,6 @@ async function fetchAnimeList() {
 
         renderAnimeList();
         saveToLocalStorage();
-
         log(`✅ 成功抓取 ${fetchedAnimes.length} 部动画（已保留 ${existingComments.size} 部评论）`);
     } catch (err) {
         console.error('抓取错误:', err);
