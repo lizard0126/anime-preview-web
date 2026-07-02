@@ -61,6 +61,7 @@ function initEventListeners() {
         if (e.target.value) {
             defaultCommenter.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${e.target.value}&s=100`;
             updateDefaultAvatarStatus();
+            renderAnimeList();
             saveToLocalStorage();
         }
     });
@@ -71,6 +72,7 @@ function initEventListeners() {
             defaultCommenter.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`;
             updateDefaultAvatarStatus();
             log('✅ 默认头像已设置');
+            renderAnimeList();
             saveToLocalStorage();
         } else {
             alert('请先输入 QQ 号');
