@@ -2,7 +2,11 @@
     "version": 2,
     "builds": [
         {
-            "src": "api/*.js",
+            "src": "api/fetch-anime.js",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "api/preview.js",
             "use": "@vercel/node"
         },
         {
