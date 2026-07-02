@@ -84,6 +84,22 @@ function initEventListeners() {
         updateDefaultAvatarStatus();
         saveToLocalStorage();
     });
+
+    document.getElementById('toggleSelectAllBtn').addEventListener('click', () => {
+        const animes = projectData.animes;
+        if (!animes?.length) {
+            log('⚠️ 没有动画可选择');
+            return;
+        }
+
+        const allSelected = animes.every(a => a.selected !== false);
+        const newState = !allSelected;
+        animes.forEach(anime => { anime.selected = newState; });
+
+        document.getElementById('toggleSelectAllBtn').textContent = newState ? '取消全选' : '全选';
+        renderAnimeList();
+        log(`✅ 已${newState ? '全选' : '取消全选'}所有动画`);
+    });
 }
 
 function updateDefaultAvatarStatus() {
@@ -326,11 +342,10 @@ function renderAnimeList() {
     if (!projectData.animes?.length) {
         container.innerHTML = `
             <div class="empty-state">
-                <div>点击"从 yuc.wiki 抓取"获取番剧列表</div>
-                <div>或点击"批量添加番剧"手动输入</div>
-                <div>输入QQ号自动获取头像</div>
-                <div>点击"预览"查看实时效果</div>
-                <div>完成后点击"导出评论"发给负责人</div>
+                <div>点击"从 yuc.wiki 抓取"获取番剧列表，或点击"添加动画"添加</div>
+                <div>输入默认评论昵称与QQ号（用于获取头像）</div>
+                <div>在对应动画条目点击添加评论</div>
+                <div>导入或导出评论</div>
             </div>
         `;
         return;
@@ -345,23 +360,27 @@ function renderAnimeList() {
 
         card.innerHTML = `
             <div class="anime-header">
+                <input type="checkbox" class="anime-select" data-index="${index}" ${anime.selected !== false ? 'checked' : ''}>
                 <span class="anime-index">#${index + 1}</span>
                 <input type="text" class="title-input" value="${escapeHtml(anime.title || '')}" placeholder="中文标题" data-index="${index}">
                 <input type="text" class="subtitle-input" value="${escapeHtml(anime.subtitle || '')}" placeholder="日文标题" data-index="${index}">
-                <button class="preview-btn" data-index="${index}" style="background:#5a6fd6;color:white;padding:4px 12px;border:none;border-radius:4px;cursor:pointer;font-size:12px;">👁 预览</button>
+                <button class="preview-btn" data-index="${index}">预览</button>
                 <button class="delete-btn" data-index="${index}">×</button>
             </div>
             <div class="anime-info">
-                <span>${escapeHtml(anime.type || '')}</span>
+                <span>类型: ${escapeHtml(anime.type || '')}</span>
                 <div class="tags">${tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
                 <span>${escapeHtml(anime.broadcast || '')}</span>
+            </div>
+            ${anime.staff ? `<div class="anime-detail"><span class="detail-label">制作:</span><span class="detail-text">${escapeHtml(anime.staff)}</span></div>` : ''}
+            ${anime.cast ? `<div class="anime-detail"><span class="detail-label">声优:</span><span class="detail-text">${escapeHtml(anime.cast)}</span></div>` : ''}
+            <div class="visual-info">
+                <span class="visual-path" title="${escapeHtml(anime.visual || '未选择视觉图')}">${anime.visual ? '视觉图: 已选择' : '视觉图: 未选择'}</span>
             </div>
             <div class="comments-section">
                 <div class="comments-header">
                     <span>评论 (${comments.length})</span>
-                    <button class="add-default-comment-btn" data-index="${index}" ${defaultCommenter.name ? '' : 'disabled'}>
-                        ${defaultCommenter.name ? '添加' + escapeHtml(defaultCommenter.name) + '的评论' : '请先设置默认信息'}
-                    </button>
+                    <button class="add-default-comment-btn" data-index="${index}" ${defaultCommenter.name ? '' : 'disabled'}>${defaultCommenter.name ? '添加' + escapeHtml(defaultCommenter.name) + '的评论' : '请先设置默认信息'}</button>
                     <button class="add-comment-btn" data-index="${index}">添加评论</button>
                 </div>
                 <div class="comments-list" data-index="${index}">
@@ -378,8 +397,8 @@ function renderAnimeList() {
                                         <option value="黑牌" ${c.medal === '黑牌' ? 'selected' : ''}>黑牌</option>
                                     </select>
                                     <span class="avatar-status">${c.qq ? '头像已获取' : '未设置QQ号'}</span>
-                                    <button class="btn-qq-avatar" data-anime="${index}" data-comment="${ci}" style="background:#5a6fd6;color:white;padding:4px 8px;border:none;border-radius:4px;cursor:pointer;font-size:12px;">获取头像</button>
-                                    <button class="btn-delete-comment" data-anime="${index}" data-comment="${ci}" style="background:#e06060;color:white;padding:4px 8px;border:none;border-radius:4px;cursor:pointer;font-size:12px;">×</button>
+                                    <button class="btn-qq-avatar" data-anime="${index}" data-comment="${ci}">获取头像</button>
+                                    <button class="btn-delete-comment" data-anime="${index}" data-comment="${ci}">×</button>
                                 </div>
                                 <textarea class="comment-text" placeholder="评论内容" data-anime="${index}" data-comment="${ci}">${escapeHtml(c.text || '')}</textarea>
                             </div>

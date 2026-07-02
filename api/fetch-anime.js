@@ -1,8 +1,7 @@
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+import { load } from 'cheerio';
 
 export default async function handler(req, res) {
-    // 允许跨域
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,15 +16,14 @@ export default async function handler(req, res) {
     try {
         const response = await axios.get(`http://yuc.wiki/${season}/`, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 Referer: 'http://yuc.wiki/'
             },
             timeout: 30000
         });
 
-        const html = response.data;
-        const entries = html.match(/<!--#[A-C]\d+-->[\s\S]*?(?=<!--#[A-C]\d+-->|$)/g) || [];
-        const animes = entries.map(entry => parseEntry(cheerio.load(entry))).filter(Boolean);
+        const entries = response.data.match(/<!--#[A-C]\d+-->[\s\S]*?(?=<!--#[A-C]\d+-->|$)/g) || [];
+        const animes = entries.map(e => parseEntry(load(e))).filter(Boolean);
 
         res.status(200).json({ success: true, data: animes, count: animes.length });
     } catch (err) {

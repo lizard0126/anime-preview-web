@@ -1,5 +1,6 @@
 import ejs from 'ejs';
 
+// 从桌面端 page.ejs 复制的模板（移除了字体引用，适配网页）
 const PAGE_TEMPLATE = `<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -7,7 +8,6 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= title %> - 预览</title>
   <style>
-    /* ... 保持样式不变 ... */
     body {
       margin: 0;
       padding: 40px;
@@ -35,7 +35,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     }
 
     .label {
-      font-family: sans-serif;
+      font-family: 'label', sans-serif;
       font-size: 40px;
       font-weight: bold;
       background: #fff;
@@ -61,7 +61,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     .cn-title {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-family: 'Microsoft YaHei', sans-serif;
+      font-family: 'title', sans-serif;
       line-height: 1.5;
       font-weight: bold;
       font-size: 50px;
@@ -72,10 +72,25 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
       overflow: hidden;
     }
 
+    .cn-title-long {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-family: 'title', sans-serif;
+      line-height: 1.5;
+      font-weight: bold;
+      font-size: 50px;
+      color: #111;
+      white-space: normal;
+      height: 700px;
+      overflow-wrap: break-word;
+      overflow: visible;
+      z-index: 0;
+    }
+
     .jp-title {
       writing-mode: vertical-rl;
       text-orientation: mixed;
-      font-family: sans-serif;
+      font-family: 'title', sans-serif;
       line-height: 1.5;
       font-size: 36px;
       color: #666;
@@ -214,8 +229,8 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
-    .footer {
-      font-family: sans-serif;
+    .footer-credit {
+      font-family: 'footer', sans-serif;
       text-align: center;
       margin-top: 0;
       font-size: 30px;
@@ -229,15 +244,21 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <div class="title-box">
       <div class="label">新番速递</div>
       <div class="title-row">
-        <% if (subtitle) { %>
-          <div class="jp-title"><%= subtitle %></div>
+        <% if (title && title.length > 26) { %>
+          <div class="cn-title-long"><%= title %></div>
+        <% } else { %>
+          <% if (subtitle) { %>
+            <div class="jp-title"><%= subtitle %></div>
+          <% } %>
+          <div class="cn-title"><%= title %></div>
         <% } %>
-        <div class="cn-title"><%= title %></div>
       </div>
     </div>
     <div class="visual-container">
-      <% if (visual) { %>
-        <img class="visual-image" src="<%= visual %>" alt="视觉图" referrerpolicy="no-referrer" />
+      <% if (visual && visual.startsWith('http')) { %>
+        <img class="visual-image" src="<%= visual %>" alt="视觉图" referrerPolicy="no-referrer" onerror="this.style.display='none'" />
+      <% } else if (visual) { %>
+        <img class="visual-image" src="<%= visual %>" alt="视觉图" onerror="this.parentElement.innerHTML='<div style=\"width:520px;height:400px;background:#e8e8e8;border-radius:0 0 520px 520px;display:flex;align-items:center;justify-content:center;color:#999;\">暂无视觉图</div>'" />
       <% } else { %>
         <div style="width:520px;height:400px;background:#e8e8e8;border-radius:0 0 520px 520px;display:flex;align-items:center;justify-content:center;color:#999;">暂无视觉图</div>
       <% } %>
@@ -247,8 +268,10 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
   <div class="comment-wrapper">
     <% comments.forEach(function(c) { %>
       <div class="comment">
-        <% if (c.avatar) { %>
-          <img class="avatar" src="<%= c.avatar %>" alt="头像" referrerpolicy="no-referrer" />
+        <% if (c.avatar && c.avatar.startsWith('http')) { %>
+          <img class="avatar" src="<%= c.avatar %>" alt="头像" referrerPolicy="no-referrer" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2230%22>?</text></svg>'" />
+        <% } else if (c.avatar) { %>
+          <img class="avatar" src="<%= c.avatar %>" alt="头像" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2230%22>?</text></svg>'" />
         <% } else { %>
           <div class="avatar" style="background:#ddd;display:flex;align-items:center;justify-content:center;font-size:30px;color:#999;">?</div>
         <% } %>
@@ -265,7 +288,7 @@ const PAGE_TEMPLATE = `<!DOCTYPE html>
     <% }); %>
   </div>
 
-  <div class="footer">天央动漫社·节操部制作</div>
+  <div class="footer-credit">天央动漫社·节操部制作</div>
 </body>
 </html>`;
 
@@ -309,7 +332,10 @@ export default async function handler(req, res) {
       if (comment && comment.images && comment.images.length > 0) {
         let imgHtml = '';
         comment.images.forEach(img => {
-          imgHtml += `<img src="${img}" referrerpolicy="no-referrer" />`;
+          // 如果是 base64 或 HTTP 链接，直接使用
+          if (img.startsWith('data:') || img.startsWith('http')) {
+            imgHtml += `<img src="${img}" referrerPolicy="no-referrer" style="max-width:100%;height:auto;display:block;margin-top:12px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,0.2);max-height:300px;" />`;
+          }
         });
         c.text = c.text + imgHtml;
       }
