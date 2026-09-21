@@ -1,6 +1,6 @@
 {
     "name": "anime-preview-web",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "节操新番导视 · 评论收集工具",
     "private": true,
     "dependencies": {
