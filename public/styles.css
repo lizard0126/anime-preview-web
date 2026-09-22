@@ -13,7 +13,7 @@ body {
 
 .app {
   display: flex;
-  height: calc(100vh - 80px);
+  height: 100vh;
   gap: 0;
   padding: 0;
   max-width: 100%;
@@ -51,25 +51,28 @@ body {
 /* ========== 预览面板 ========== */
 .preview-panel {
   flex: 2;
-  height: calc(100vh - 80px);
+  height: 100vh;
   background: #fffef5;
   overflow: hidden;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 #previewContainer {
   width: 100%;
   height: 100%;
+  min-height: 0;
   background: #fffef5;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 #previewContainer iframe {
   width: 100%;
   height: 100%;
   border: none;
-  overflow: auto;
   background: #fffef5;
   border-radius: 8px;
 }
@@ -119,13 +122,20 @@ body {
   cursor: not-allowed;
 }
 
-/* 工具栏按钮颜色 */
-#fetchBtn {
+/* ========== 工具栏按钮配色 ========== */
+/* 主色按钮（抓取 / 导入 / 导出 / 全选） */
+#fetchBtn,
+#loadJsonBtn,
+#saveJsonBtn,
+#toggleSelectAllBtn {
   background: #5a6fd6;
   color: white;
 }
 
-#fetchBtn:hover:not(:disabled) {
+#fetchBtn:hover:not(:disabled),
+#loadJsonBtn:hover:not(:disabled),
+#saveJsonBtn:hover:not(:disabled),
+#toggleSelectAllBtn:hover:not(:disabled) {
   background: #4a5fc6;
 }
 
@@ -136,17 +146,6 @@ body {
 
 #batchAddBtn:hover:not(:disabled) {
   background: #45a518;
-}
-
-#loadJsonBtn,
-#saveJsonBtn {
-  background: #5a6fd6;
-  color: white;
-}
-
-#loadJsonBtn:hover:not(:disabled),
-#saveJsonBtn:hover:not(:disabled) {
-  background: #4a5fc6;
 }
 
 #clearAllBtn {
@@ -219,6 +218,7 @@ body {
   white-space: nowrap;
 }
 
+/* 默认栏按钮：主色（获取头像） */
 .dc-fetch-qq-avatar {
   background: #5a6fd6;
   color: white;
@@ -228,6 +228,7 @@ body {
   background: #4a5fc6;
 }
 
+/* 默认栏按钮：危险（清除） */
 .dc-clear {
   background: #e06060;
   color: white;
@@ -312,6 +313,7 @@ body {
 
 .title-input {
   flex: 3;
+  min-width: 0;
   padding: 6px 10px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
@@ -320,6 +322,7 @@ body {
 
 .subtitle-input {
   flex: 2;
+  min-width: 0;
   padding: 6px 10px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
@@ -526,18 +529,14 @@ body {
   white-space: nowrap;
 }
 
+/* 评论行按钮：仅覆盖尺寸，其余继承顶部基础样式 */
 .comment-row button {
   padding: 4px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
-  font-family: 'Microsoft YaHei', sans-serif;
-  white-space: nowrap;
   line-height: 1.4;
 }
 
+/* 评论行按钮：主色（获取头像） */
 .btn-qq-avatar {
   background: #5a6fd6;
   color: white;
@@ -547,6 +546,17 @@ body {
   background: #4a5fc6;
 }
 
+/* 评论行按钮：图片（插入图片） */
+.add-comment-image-btn {
+  background: #eb9e4a;
+  color: white;
+}
+
+.add-comment-image-btn:hover {
+  background: #d88a3a;
+}
+
+/* 评论行按钮：危险（删除评论） */
 .btn-delete-comment {
   background: #e06060;
   color: white;
@@ -575,7 +585,6 @@ body {
   font-family: inherit;
   font-size: 13px;
   resize: vertical;
-  box-sizing: border-box;
   background: white;
   line-height: 1.5;
 }
@@ -586,43 +595,55 @@ body {
   box-shadow: 0 0 0 2px rgba(90, 111, 214, 0.1);
 }
 
-/* ========== 日志区 ========== */
-.log-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+/* ========== 评论图片 ========== */
+.comment-images {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.comment-image-item {
+  position: relative;
+  display: inline-block;
+}
+
+.comment-image-thumb {
+  width: 60px;
   height: 60px;
-  background: #1a1a2e;
-  color: #00ff88;
-  padding: 8px 20px;
-  overflow: hidden;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #e8e8e8;
+  transition: opacity 0.2s;
 }
 
-.log {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 12px;
-  line-height: 1.6;
+.comment-image-thumb:hover {
+  opacity: 0.8;
 }
 
-.log::-webkit-scrollbar {
-  width: 6px;
+.remove-comment-image-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  background: #e06060;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+  display: none;
+  padding: 0;
 }
 
-.log::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.log::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.log::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+.comment-image-item:hover .remove-comment-image-btn {
+  display: block;
 }
 
 /* ========== 预览区 ========== */
@@ -670,18 +691,69 @@ body {
   background: #a1a1a1;
 }
 
-/* ========== 响应式 ========== */
+/* ========== 移动端适配 ========== */
 @media (max-width: 1000px) {
   .app {
     flex-direction: column;
-    height: auto;
+    height: 100vh;
+    overflow: hidden;
   }
 
   .editor-panel {
-    max-height: 50vh;
+    flex: 1 1 50%;
+    min-height: 0;
+    overflow-y: auto;
+    height: auto;
   }
 
   .preview-panel {
-    height: 50vh;
+    flex: 1 1 50%;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+    padding: 12px;
+  }
+
+  .anime-header {
+    flex-wrap: wrap;
+  }
+
+  .title-input,
+  .subtitle-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .anime-header .preview-btn,
+  .anime-header .delete-btn,
+  .anime-select {
+    flex: 0 0 auto;
+  }
+
+  .comment-name,
+  .comment-qq,
+  .dc-name,
+  .dc-qq {
+    min-width: 0;
+  }
+
+  /* 移动端按钮与图片缩略图适配 */
+  .comment-row button {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .comment-image-thumb {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* 工具栏按钮换行时不溢出 */
+  .toolbar {
+    gap: 6px;
+  }
+
+  .toolbar button {
+    flex: 0 0 auto;
   }
 }

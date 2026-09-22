@@ -16,18 +16,17 @@
         <h1>🎬 节操新番导视 · 评论收集</h1>
         <p class="subtitle">输入QQ号获取头像，添加评论后可实时预览效果</p>
       </div>
-
       <div class="toolbar">
         <div class="fetch-group">
-          <input type="text" id="seasonInput" value="202607" placeholder="季度代码，如 202607">
+          <input type="text" id="seasonInput" placeholder="季度代码，如 202610">
           <button id="fetchBtn">从 yuc.wiki 抓取</button>
         </div>
         <button id="batchAddBtn">批量添加番剧</button>
         <button id="loadJsonBtn">导入评论</button>
         <button id="saveJsonBtn">导出评论</button>
-        <button id="clearAllBtn" class="danger-btn">清除全部</button>
+        <button id="toggleSelectAllBtn">全选</button>
+        <button id="clearAllBtn">清除全部</button>
       </div>
-
       <!-- 默认评论者设置 -->
       <div class="default-commenter-bar">
         <div class="default-commenter">
@@ -39,16 +38,13 @@
           <button id="clearDefault" class="dc-clear">清除</button>
         </div>
       </div>
-
       <div id="loading" class="loading" style="display:none;">
         <div class="spinner"></div>
         <span id="loadingText">正在加载...</span>
       </div>
-
       <!-- 番剧列表 -->
       <div id="animeList" class="anime-list"></div>
     </div>
-
     <!-- 右侧预览区 -->
     <div class="preview-panel">
       <div id="previewContainer">
@@ -56,12 +52,6 @@
       </div>
     </div>
   </div>
-
-  <!-- 日志区 -->
-  <div class="log-container">
-    <div id="log" class="log"></div>
-  </div>
-
   <script src="/app.js"></script>
 </body>
 

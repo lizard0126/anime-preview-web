@@ -1,3 +1,5 @@
+const API_BASE = '/api';
+
 let projectData = {
     title: '新番速递',
     animes: []
@@ -10,6 +12,7 @@ let defaultCommenter = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('seasonInput').value = getNextSeasonCode();
     initEventListeners();
     renderAnimeList();
     loadFromLocalStorage();
@@ -59,7 +62,7 @@ function initEventListeners() {
     document.getElementById('defaultQQ').addEventListener('change', (e) => {
         defaultCommenter.qq = e.target.value;
         if (e.target.value) {
-            defaultCommenter.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${e.target.value}&s=100`;
+            defaultCommenter.avatar = `https://q1.qlogo.cn/g?b=qq&nk=${e.target.value}&s=100`;
             updateDefaultAvatarStatus();
             renderAnimeList();
             saveToLocalStorage();
@@ -69,7 +72,7 @@ function initEventListeners() {
     document.getElementById('fetchDefaultAvatar').addEventListener('click', () => {
         const qq = document.getElementById('defaultQQ').value;
         if (qq) {
-            defaultCommenter.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`;
+            defaultCommenter.avatar = `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`;
             updateDefaultAvatarStatus();
             log('✅ 默认头像已设置');
             renderAnimeList();
@@ -116,11 +119,11 @@ function updateDefaultAvatarStatus() {
 }
 
 async function fetchAnimeList() {
-    const season = document.getElementById('seasonInput').value || '202607';
+    const season = document.getElementById('seasonInput').value || getNextSeasonCode();
     showLoading('正在抓取番剧列表...');
 
     try {
-        const apiUrl = `/api/fetch-anime?season=${season}`;
+        const apiUrl = `${API_BASE}/fetch-anime?season=${season}`;
         log(`📡 请求: ${apiUrl}`);
 
         const response = await fetch(apiUrl);
@@ -257,7 +260,7 @@ function importComments() {
                         for (const comment of importedComments) {
                             const existingNames = new Set(localAnime.comments.map(c => c.name));
                             if (comment.name && !existingNames.has(comment.name)) {
-                                const avatar = comment.avatar || (comment.qq ? `http://q1.qlogo.cn/g?b=qq&nk=${comment.qq}&s=100` : '');
+                                const avatar = comment.avatar || (comment.qq ? `https://q1.qlogo.cn/g?b=qq&nk=${comment.qq}&s=100` : '');
                                 localAnime.comments.push({
                                     name: comment.name || '',
                                     qq: comment.qq || '',
@@ -400,9 +403,18 @@ function renderAnimeList() {
                                     </select>
                                     <span class="avatar-status">${c.qq ? '头像已获取' : '未设置QQ号'}</span>
                                     <button class="btn-qq-avatar" data-anime="${index}" data-comment="${ci}">获取头像</button>
+                                    <button class="add-comment-image-btn" data-anime="${index}" data-comment="${ci}" title="插入图片">插入图片</button>
                                     <button class="btn-delete-comment" data-anime="${index}" data-comment="${ci}">×</button>
                                 </div>
                                 <textarea class="comment-text" placeholder="评论内容" data-anime="${index}" data-comment="${ci}">${escapeHtml(c.text || '')}</textarea>
+                                <div class="comment-images">
+                                    ${(c.images || []).map((img, ii) => `
+                                        <div class="comment-image-item" data-anime="${index}" data-comment="${ci}" data-image="${ii}">
+                                            <img src="${escapeHtml(img)}" class="comment-image-thumb" title="点击移除">
+                                            <button class="remove-comment-image-btn" data-anime="${index}" data-comment="${ci}" data-image="${ii}">×</button>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         `;
         }).join('')}
@@ -504,7 +516,7 @@ function bindAnimeEvents() {
             if (commentData) {
                 commentData.qq = e.target.value;
                 if (e.target.value) {
-                    commentData.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${e.target.value}&s=100`;
+                    commentData.avatar = `https://q1.qlogo.cn/g?b=qq&nk=${e.target.value}&s=100`;
                     renderAnimeList();
                 }
                 saveToLocalStorage();
@@ -532,12 +544,32 @@ function bindAnimeEvents() {
         });
     });
 
+    document.querySelectorAll('.add-comment-image-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const { anime, comment } = e.target.dataset;
+            triggerImageUpload(parseInt(anime), parseInt(comment));
+        });
+    });
+
+    document.querySelectorAll('.remove-comment-image-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const { anime, comment, image } = e.target.dataset;
+            const commentData = projectData.animes[anime]?.comments[comment];
+            if (commentData?.images) {
+                commentData.images.splice(parseInt(image), 1);
+                renderAnimeList();
+                saveToLocalStorage();
+                log('✅ 已移除图片');
+            }
+        });
+    });
+
     document.querySelectorAll('.btn-qq-avatar').forEach(btn => {
         btn.addEventListener('click', e => {
             const { anime, comment } = e.target.dataset;
             const commentData = projectData.animes[anime]?.comments[comment];
             if (commentData?.qq) {
-                commentData.avatar = `http://q1.qlogo.cn/g?b=qq&nk=${commentData.qq}&s=100`;
+                commentData.avatar = `https://q1.qlogo.cn/g?b=qq&nk=${commentData.qq}&s=100`;
                 renderAnimeList();
                 saveToLocalStorage();
                 log(`✅ 已获取 ${commentData.name || '该用户'} 的头像`);
@@ -589,7 +621,7 @@ async function previewAnime(index) {
 
         console.log('预览请求数据:', requestData);
 
-        const response = await fetch('/api/preview', {
+        const response = await fetch(`${API_BASE}/preview`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
@@ -607,29 +639,69 @@ async function previewAnime(index) {
 
         let html = result.html;
 
-        console.log('预览 HTML 包含视觉图:', html.includes('visual-image'));
+        const DESIGN_WIDTH = 800;
+
+        const previewStyle = `
+        <style>
+            ::-webkit-scrollbar { width: 8px; height: 8px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: #cdd2f0; border-radius: 4px; }
+            ::-webkit-scrollbar-thumb:hover { background: #5a6fd6; }
+            html { scrollbar-width: thin; scrollbar-color: #cdd2f0 transparent; }
+
+            #__zoom__ {
+                width: ${DESIGN_WIDTH}px;
+                transform-origin: top left;
+            }
+            #__zoom_wrap__ {
+                width: 100%;
+                overflow: hidden;
+            }
+        </style>`;
+
+        html = html.includes('</head>')
+            ? html.replace('</head>', `${previewStyle}</head>`)
+            : previewStyle + html;
+
+        html = html.replace(/<body([^>]*)>/i, `<body$1><div id="__zoom_wrap__"><div id="__zoom__">`);
+        html = html.replace(/<\/body>/i, `</div></div></body>`);
 
         // 创建 iframe 显示预览
         const iframe = document.createElement('iframe');
-        iframe.style.cssText = 'width:100%;min-height:500px;border:none;border-radius:4px;background:#fffef5;';
-        // 使用更宽松的 sandbox 权限
+        iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:4px;background:#fffef5;display:block;';
         iframe.sandbox = 'allow-scripts allow-same-origin allow-popups';
 
         previewContainer.innerHTML = '';
         previewContainer.appendChild(iframe);
 
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        doc.open();
-        doc.write(html);
-        doc.close();
+        iframe.srcdoc = html;
 
-        // 等待图片加载完成后调整高度
-        setTimeout(() => {
-            const height = iframe.contentDocument?.body?.scrollHeight || 500;
-            iframe.style.height = height + 'px';
-        }, 500);
+        iframe.addEventListener('load', () => {
+            const doc = iframe.contentDocument;
+            const win = iframe.contentWindow;
+            if (!doc || !win) return;
 
-        log(`✅ 预览生成成功: ${anime.title}`);
+            const zoom = doc.getElementById('__zoom__');
+            const wrap = doc.getElementById('__zoom_wrap__');
+            if (!zoom || !wrap) return;
+
+            const apply = () => {
+                const iframeWidth = iframe.clientWidth;
+
+                const scale = Math.min(1, iframeWidth / DESIGN_WIDTH);
+
+                zoom.style.transform = `scale(${scale})`;
+
+                wrap.style.height = (zoom.scrollHeight * scale) + 'px';
+            };
+
+            apply();
+            win.addEventListener('resize', apply);
+            if (win.ResizeObserver) {
+                new ResizeObserver(apply).observe(zoom);
+            }
+        });
+
     } catch (err) {
         console.error('预览失败:', err);
         previewContainer.innerHTML = `<div class="preview-placeholder" style="color:red;">预览失败: ${escapeHtml(err.message)}</div>`;
@@ -639,9 +711,7 @@ async function previewAnime(index) {
 
 // ========== 日志 ==========
 function log(msg) {
-    const logDiv = document.getElementById('log');
-    logDiv.innerHTML += `<div>${escapeHtml(msg)}</div>`;
-    logDiv.scrollTop = logDiv.scrollHeight;
+    console.log(msg);
 }
 
 // ========== 加载状态 ==========
@@ -661,4 +731,68 @@ function escapeHtml(text) {
     const d = document.createElement('div');
     d.textContent = text;
     return d.innerHTML;
+}
+
+function getNextSeasonCode() {
+    const now = new Date();
+    let year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    let currentSeasonMonth;
+    if (month <= 3) currentSeasonMonth = 1;
+    else if (month <= 6) currentSeasonMonth = 4;
+    else if (month <= 9) currentSeasonMonth = 7;
+    else currentSeasonMonth = 10;
+
+    let nextMonth = currentSeasonMonth + 3;
+    if (nextMonth > 12) {
+        nextMonth = 1;
+        year += 1;
+    }
+
+    return `${year}${String(nextMonth).padStart(2, '0')}`;
+}
+
+// ========== 本地上传图片（Web 端） ==========
+function triggerImageUpload(animeIndex, commentIndex) {
+    const commentData = projectData.animes[animeIndex]?.comments[commentIndex];
+    if (!commentData) return;
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
+        if (!commentData.images) commentData.images = [];
+
+        const MAX_SIZE = 2 * 1024 * 1024;
+        let added = 0, skipped = 0;
+
+        for (const file of files) {
+            if (!file.type.startsWith('image/') || file.size > MAX_SIZE) { skipped++; continue; }
+            try {
+                commentData.images.push(await fileToDataURL(file));
+                added++;
+            } catch { skipped++; }
+        }
+
+        renderAnimeList();
+        saveToLocalStorage();
+        if (added) log(`✅ 已添加 ${added} 张图片${skipped ? `，跳过 ${skipped} 张` : ''}`);
+    };
+
+    input.click();
+}
+
+function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
